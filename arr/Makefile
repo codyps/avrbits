@@ -5,21 +5,20 @@
 # (GNU make, BSD make, SysV make)
 
 
-MCU = atmega644p
-ADMCU = atmega644p
+MCU = atmega328p
+ADMCU = atmega328p
+F_CPU = 16000000
+
 FORMAT = ihex
 TARGET = main
-SRC = main.c
-#SRC += util.c
-#SRC += usart1.c
-SRC += ../common/bus/spi_io.c
-#SRC += ../common/i2c.c ../common/ex/i2c_HMC6343.c
-#SRC += ../common/servo.c
-SRC += ../common/ds/queue.c
-SRC += ../common/ds/list.c
+SRC  = main.c
+SRC += servo.c
+SRC += usart.c
 
 ASRC = 
 OPT = s
+
+srcdir = .
 
 # Name of this Makefile (used for "make depend").
 MAKEFILE = Makefile
@@ -36,15 +35,15 @@ DEBUG = stabs
 # gnu99 - c99 plus GCC extensions
 CSTANDARD = -std=gnu99
 
-# Place -D or -U options here
-CDEFS =
+VERSION := $(shell $(srcdir)/../setlocalversion)
+CDEFS = -DVERSION="\"$(VERSION)\""
 
 # Place -I options here
 CINCS = -I../common
 CLINK =
 
 CDEBUG = -g$(DEBUG)
-CWARN = -Wall -Wstrict-prototypes
+CWARN = -Wall -Wstrict-prototypes -Wno-main
 CTUNING = -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 #CEXTRA = -Wa,-adhlns=$(<:.c=.lst)
 CFLAGS = $(CDEBUG) $(CDEFS) $(CINCS) -O$(OPT) $(CWARN) $(CSTANDARD) $(CEXTRA) $(CLINK)
@@ -91,8 +90,8 @@ LDFLAGS = $(EXTMEMOPTS) $(LDMAP) $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 
 # Programming support using avrdude. Settings and variables.
 
-AVRDUDE_PROGRAMMER = usbtiny
-#AVRDUDE_PORT = "-P /dev/ttyUSB0"
+AVRDUDE_PROGRAMMER = arduino
+AVRDUDE_PORT = -P /dev/ttyUSB0 -b 57600
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
@@ -133,7 +132,7 @@ LST = $(ASRC:.S=.lst) $(SRC:.c=.lst)
 
 # Combine all necessary flags and optional flags.
 # Add target processor to flags.
-ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS)
+ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS) -DF_CPU=$(F_CPU)
 ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 
 
@@ -190,29 +189,24 @@ extcoff: $(TARGET).elf
 .elf.sym:
 	$(NM) -n $< > $@
 
-
-
 # Link: create ELF output file from object files.
 $(TARGET).elf: $(OBJ)
 	$(CC) $(ALL_CFLAGS) $(OBJ) -o $@ $(LDFLAGS)
 
 $(TARGET).uni.elf: $(SRC)
-	$(CC) $(ALL_CFLAGS) $(SRC) --combine -fwhole-program --output $@ $(LDFLAGS)
+	$(CC) $(ALL_CFLAGS) $(SRC) --combine -fwhole-program -o $@ $(LDFLAGS)
 
 # Compile: create object files from C source files.
 .c.o:
-	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
-
+	$(CC) $(ALL_CFLAGS) -c -o $@ $<
 
 # Compile: create assembler files from C source files.
 .c.s:
-	$(CC) -S $(ALL_CFLAGS) $< -o $@
-
+	$(CC) -S $(ALL_CFLAGS) -c -o $@ $<
 
 # Assemble: create object files from assembler source files.
 .S.o:
 	$(CC) -c $(ALL_ASFLAGS) $< -o $@
-
 
 
 # Target: clean project.
