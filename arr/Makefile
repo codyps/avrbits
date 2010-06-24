@@ -12,8 +12,11 @@ F_CPU = 16000000
 FORMAT = ihex
 TARGET = main
 SRC  = main.c
+SRC += msg_proc.c
+SRC += version.c
 SRC += servo.c
 SRC += usart.c
+SRC += ../common/bus/i2c-single.c
 
 ASRC = 
 OPT = s
@@ -128,7 +131,7 @@ MV = mv -f
 OBJ = $(SRC:.c=.o) $(ASRC:.S=.o) 
 
 # Define all listing files.
-LST = $(ASRC:.S=.lst) $(SRC:.c=.lst)
+LST = $(SRC:.c=.lst) $(ASRC:.S=.lst) 
 
 # Combine all necessary flags and optional flags.
 # Add target processor to flags.
@@ -175,15 +178,18 @@ extcoff: $(TARGET).elf
 .SUFFIXES: .elf .hex .eep .lss .sym
 
 .elf.hex:
-	$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
+	@echo OBJCOPY $@
+	@$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
 
 .elf.eep:
-	-$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
+	@echo OBJCOPY $@
+	@-$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
 	--change-section-lma .eeprom=0 -O $(FORMAT) $< $@
 
 # Create extended listing file from ELF output file.
 .elf.lss:
-	$(OBJDUMP) -h -S $< > $@
+	@OBJDUMP $@
+	@$(OBJDUMP) -h -S $< > $@
 
 # Create a symbol table from ELF output file.
 .elf.sym:
@@ -191,14 +197,17 @@ extcoff: $(TARGET).elf
 
 # Link: create ELF output file from object files.
 $(TARGET).elf: $(OBJ)
-	$(CC) $(ALL_CFLAGS) $(OBJ) -o $@ $(LDFLAGS)
+	@echo "LD $(@F)"
+	@$(CC) $(ALL_CFLAGS) $(OBJ) -o $@ $(LDFLAGS)
 
 $(TARGET).uni.elf: $(SRC)
-	$(CC) $(ALL_CFLAGS) $(SRC) --combine -fwhole-program -o $@ $(LDFLAGS)
+	@echo "LDUNI $(@F) $^"
+	@$(CC) $(ALL_CFLAGS) $(SRC) --combine -fwhole-program -o $@ $(LDFLAGS)
 
 # Compile: create object files from C source files.
 .c.o:
-	$(CC) $(ALL_CFLAGS) -c -o $@ $<
+	@echo "CC $(@F)"
+	@$(CC) $(ALL_CFLAGS) -c -o $@ $<
 
 # Compile: create assembler files from C source files.
 .c.s:
@@ -213,7 +222,10 @@ $(TARGET).uni.elf: $(SRC)
 clean:
 	$(REMOVE) $(TARGET).hex $(TARGET).eep $(TARGET).cof $(TARGET).elf \
 	$(TARGET).map $(TARGET).sym $(TARGET).lss \
-	$(OBJ) $(LST) $(SRC:.c=.s) $(SRC:.c=.d) \
+	$(OBJ) \
+	$(LST) \
+	$(SRC:.c=.s) \
+	$(SRC:.c=.d) \
 	$(TARGET).uni.hex $(TARGET).uni.eep $(TARGET).uni.elf $(TARGET).uni.cof
 
 depend:

@@ -13,12 +13,12 @@
 /*          name,  fnattr, dattr, dtype,itype */
 LIST_DEFINE(sio_l, static, volatile, char, uint8_t);
 
-#define RX_BUFF_SZ 64
+static volatile uint8_t usart_msg;
 
 char tx_buffer[32];
 static list_t(sio_l) tx_q = LIST_INITIALIZER(tx_buffer);
 
-char rx_buffer[RX_BUFF_SZ];
+char rx_buffer[USART_RX_BUFF_SZ];
 static list_t(sio_l) rx_q = LIST_INITIALIZER(rx_buffer);
 
 static int usart_getchar_queue(FILE * stream);
@@ -40,13 +40,31 @@ inline static void usart_udre_inter_off(void) { UCSRB &= (uint8_t)~(1<<UDRIE); }
 inline static void usart_rx_inter_on(void) { UCSRB|= (uint8_t) (1<<RXCIE); }
 inline static void usart_rx_inter_off(void) { UCSRB &= (uint8_t)~(1<<RXCIE); }
 
-void usart_flush_rx( void ) {
+void usart_flush_rx(void)
+{
     list_flush(sio_l)(&rx_q);
 }
 
-void usart_flush_tx( void ) {
+void usart_flush_tx(void)
+{
     list_flush(sio_l)(&tx_q);
+}
 
+void usart_flush_msg(void)
+{
+	while( list_get(sio_l)(&rx_q) != '\n' );
+}
+
+bool usart_new_msg(void)
+{
+	bool ret = false;
+	usart_rx_inter_off();
+	if (usart_msg) {
+		usart_msg--;
+		ret = true;
+	}
+	usart_rx_inter_on();
+	return ret;
 }
 
 static int usart_putchar_direct(char c, FILE *stream) {
@@ -179,7 +197,6 @@ char *rx_reading = NULL;
  * 
  */
 
-volatile uint8_t usart_msg;
 
 ISR(USART_RX_vect)
 {
@@ -194,20 +211,23 @@ ISR(USART_RX_vect)
 		if(c == '\b' || c == 0x7f) {
 			// handle characters which do not add to q.
 			// backspace
-			if (!list_empty(sio_l)(&rx_q)) {
+			if (!LIST_EMPTY(&rx_q)) {
 				list_remove(sio_l)(&rx_q);
-				fputc('\b',&usart_io_queue);
-				fputc(' ' ,&usart_io_queue);
-				fputc('\b',&usart_io_queue);
+				if (usart_echo) {
+					fputc('\b',&usart_io_queue);
+					fputc(' ' ,&usart_io_queue);
+					fputc('\b',&usart_io_queue);
+				}
 			}
-		} else if(!list_full(sio_l)(&rx_q)) {
+		} else if(!LIST_FULL(&rx_q)) {
 			// normal reception.
 			if ( c == '\r') c = '\n';
 			if ( c == '\n' ) {
 				usart_msg++;
 			}
 			list_put(sio_l)(&rx_q,c);
-			fputc(c,&usart_io_queue);
+			if (usart_echo)
+				fputc(c,&usart_io_queue);
 		} else {
 			// full queue.
 			fputc('\a',&usart_io_queue);

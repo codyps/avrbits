@@ -17,6 +17,8 @@ typedef int8_t list_error_t;
 
 #define list_t(_name_) CAT3(list_,_name_,_t)
 
+#define LIST_CT(list) ((list).ct)
+#define LIST_SZ(list) ((list).sz)
 
 /* first = first char, end = last + 1,
  * ct = nmem, sz = max_nmem */
@@ -81,52 +83,52 @@ __unused _data_t_ list_popf(_name_)(list_t(_name_) *l) {    \
 __unused _data_t_ list_popb(_name_)(list_t(_name_) *l) {     \
 	if ( unlikely( list_empty(_name_)(l) ) ) {  \
 		LIST_ERROR_NORET();                 \
-		return 0;                           \
+		return (_data_t_)0;                 \
 	}                                       \
 	l->ct--;                                \
 	l->end--;                               \
 	if ( l->end >= l->sz)                   \
-		l->end = l->sz - 1;                 \
+		l->end = l->sz - 1;             \
 	_data_t_ last = l->buffer[l->end];      \
 	return last;                            \
 }
 
 #define _L_DEF_PUSHF(_name_,_data_t_)   \
-__unused list_error_t list_pushf(_name_)(list_t(_name_) *l, _data_t_ x) { \
+__unused int8_t list_pushf(_name_)(list_t(_name_) *l, _data_t_ x) { \
 	if ( unlikely( list_full(_name_)(l) ) ){ \
-		LIST_ERROR();                \
-		return -1;                   \
+		LIST_ERROR();            \
+		return -1;               \
 	}                                \
 	l->ct++;                         \
 	l->first--;                      \
 	if ( l->first >= l->sz )         \
-		l->first = l->sz - 1;        \
+		l->first = l->sz - 1;    \
 	l->buffer[ l->first ] = x;       \
 	return 0;                        \
 }
 
-#define _L_DEF_PUSHFO(_name_,_data_t_)\
+#define _L_DEF_PUSHFO(_name_,_data_t_) \
 __unused void list_pushfo(_name_)(list_t(_name_) *l, _data_t_ x) {\
-	if ( !list_full(_name_)(l) ) {     \
+	if ( !list_full(_name_)(l) ) { \
 		l->ct++;               \
-	}                          \
-	l->first--;                \
-	if( l->first >= l->sz )    \
+	}                              \
+	l->first--;                    \
+	if( l->first >= l->sz )        \
 		l->first = l->sz - 1;  \
-	l->buffer[ l->first ] = x; \
+	l->buffer[ l->first ] = x;     \
 }
 
 #define _L_DEF_PUSHB(_name_,_data_t_) \
-__unused list_error_t list_pushb(_name_)(list_t(_name_) *l, _data_t_ x) {\
+__unused int8_t list_pushb(_name_)(list_t(_name_) *l, _data_t_ x) {\
 	if ( unlikely( list_full(_name_)(l) ) ){ \
-		LIST_ERROR();                \
-		return -1;                   \
+		LIST_ERROR();            \
+		return -1;               \
 	}                                \
 	l->ct++;                         \
 	l->buffer[ l->end ] = x;         \
 	l->end++;                        \
 	if ( l->end >= l->sz )           \
-		l->end = 0;                  \
+		l->end = 0;              \
 	return 0;                        \
 }
 
@@ -135,10 +137,10 @@ __unused void list_pushbo(_name_)(list_t(_name_) *l, _data_t_ x) {\
 	l->buffer[ l->end ] = x; \
 	l->end++;                \
 	if ( l->end >= l->sz )   \
-		l->end = 0;          \
+		l->end = 0;      \
 	if (!list_full(l))       \
-		++(l->ct);           \
-	return 0;                \
+		++(l->ct);       \
+	return;                  \
 }
 
 #define _L_DEF_PEEKF(_name_,_data_t_)   \
@@ -146,38 +148,38 @@ __unused _data_t_ list_peekf(_name_)(list_t(_name_) *l) {\
 	if ( unlikely( list_empty(_name_)(l) ) ) {  \
 		LIST_ERROR_NORET();             \
 		return 0;                       \
-	}                                   \
-	return l->buffer[l->first];         \
+	}                                       \
+	return l->buffer[l->first];             \
 }
 
 #define _L_DEF_PEEKB(_name_,_data_t_,_index_t_)  \
 __unused _data_t_ list_peekb(_name_)(list_t(_name_) *l) {\
 	if ( unlikely( list_empty(_name_)(l) ) ) { \
-		LIST_ERROR_NORET();            \
-		return 0;                      \
-	}                                  \
-	_index_t_ last = l->end-1;         \
-	if (last >= l->sz) {               \
-		last = l->sz-1;                \
-	}                                  \
-	return l->buffer[last];            \
+		LIST_ERROR_NORET();                \
+		return (_data_t_)0;                \
+	}                                          \
+	_index_t_ last = l->end-1;                 \
+	if (last >= l->sz) {                       \
+		last = l->sz-1;                    \
+	}                                          \
+	return l->buffer[last];                    \
 }
 
 #define _L_DEF_PEEK(_name_,_data_t_,_index_t_)  \
 __unused _data_t_ list_peek(_name_)(list_t(_name_) *l, _index_t_ index) {\
-	if ( unlikely( index >= l->ct ) ) {         \
-		LIST_ERROR_NORET();                     \
-		return 0;                               \
-	}                                           \
-	_index_t_ list_i, buff_i;                   \
-	for( (buff_i = l->first, list_i = 0) ; ; (++buff_i,++list_i) ) {\
-		if (buff_i >= l->sz)                    \
-			buff_i = 0;                         \
-		if (list_i == index)                    \
-			return l->buffer[buff_i];           \
-	}                                           \
-	LIST_ERROR_NORET();                         \
-	return 0;                                   \
+	if ( unlikely( index >= l->ct ) ) {                              \
+		LIST_ERROR_NORET();                                      \
+		return 0;                                                \
+	}                                                                \
+	_index_t_ list_i, buff_i;                                        \
+	for((buff_i = l->first, list_i = 0);; (++buff_i,++list_i)) {     \
+		if (buff_i >= l->sz)                                     \
+			buff_i = 0;                                      \
+		if (list_i == index)                                     \
+			return l->buffer[buff_i];                        \
+	}                                                                \
+	LIST_ERROR_NORET();                                              \
+	return 0;                                                        \
 }
 
 /* Can be called from non-isr with probably no bad occourances. */
@@ -187,6 +189,11 @@ __unused void list_flush(_name_)(list_t(_name_) *list) { \
 	list->ct = 0;               \
 }
 
+#define LIST_FLUSH(_list_) do {          \
+	(_list_)->end = (_list_)->first;   \
+	(_list_)->ct = 0;                \
+	} while(0)
+
 #define _L_DEF_EMPTY(_name_)            \
 __unused bool list_empty(_name_)(list_t(_name_) *list) { \
 	if ( likely( list->ct != 0 ) )      \
@@ -195,6 +202,9 @@ __unused bool list_empty(_name_)(list_t(_name_) *list) { \
 		return true;                    \
 }
 
+#define LIST_EMPTY(_list_) \
+	((likely((_list_)->ct != 0))?false:true)
+
 #define _L_DEF_FULL(_name_)              \
 __unused bool list_full(_name_)(list_t(_name_) *list) {   \
 	if ( likely( list->ct < list->sz ) ) \
@@ -202,6 +212,9 @@ __unused bool list_full(_name_)(list_t(_name_) *list) {   \
 	else                                 \
 		return true;                 \
 }
+
+#define LIST_FULL(_list_) \
+	((likely((_list_)->ct < (_list_)->sz))? false : true)
 
 #define _L_DEF_VAL_I(_name_, _index_t_)  \
 __unused bool list_valid_i(_name_)(list_t(_name_) *list, _index_t_ i) {\
