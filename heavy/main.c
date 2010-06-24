@@ -81,23 +81,23 @@ static uint8_t bit_reverse(uint8_t x)
 
 /*
 ISO Track 2 table
-          	Hex	  Char Function
-0	0	0	0	1  0x00 0	Data
-1	0	0	0	0  0x01 1	Data
-0	1	0	0	0  0x02 2	Data
-1	1	0	0	1  0x03 3	Data
-0	0	1	0	0  0x04 4	Data
-1	0	1	0	1  0x05 5	Data
-0	1	1	0	1  0x06 6	Data
-1	1	1	0	0  0x07 7	Data
-0	0	0	1	0  0x08 8	Data
-1	0	0	1	1  0x09 9	Data
-0	1	0	1	1  0x0A :	Control
-1	1	0	1	0  0x0B ;	Start Sentinel
-0	0	1	1	1  0x0C <	Control
-1	0	1	1	0  0x0D =	Field Separator
-0	1	1	1	0  0x0E >	Control
-1	1	1	1	1  0x0F ?	End Sentinel
+bits    p Hex  Char Function
+0 0 0 0 1 0x00 0    Data
+1 0 0 0 0 0x01 1    Data
+0 1 0 0 0 0x02 2    Data
+1 1 0 0 1 0x03 3    Data
+0 0 1 0 0 0x04 4    Data
+1 0 1 0 1 0x05 5    Data
+0 1 1 0 1 0x06 6    Data
+1 1 1 0 0 0x07 7    Data
+0 0 0 1 0 0x08 8    Data
+1 0 0 1 1 0x09 9    Data
+0 1 0 1 1 0x0A :    Control
+1 1 0 1 0 0x0B ;    Start Sentinel
+0 0 1 1 1 0x0C <    Control
+1 0 1 1 0 0x0D =    Field Separator
+0 1 1 1 0 0x0E >    Control
+1 1 1 1 1 0x0F ?    End Sentinel
 */
 
 static uint16_t iso_t2(uint8_t in)
@@ -225,7 +225,7 @@ ISR(BADISR_vect){
 }
 */
 
-void init(void)
+static inline void init(void)
 {
 	power_all_disable();
 
@@ -252,23 +252,23 @@ int main(void)
 
 
 		if (mag.end_stop_1) {
-			puts_P(PSTR("\nend_stop_1\n"));
-			mag.end_stop_1--;
+			printf_P(PSTR("\nend_stop_1 : %d\n"),mag.end_stop1);
+			mag.end_stop_1=0;
 		}
 
 		if (mag.end_stop_0) {
-			puts_P(PSTR("end_stop_0\n\n"));
-			mag.end_stop_0--;
+			printf_P(PSTR("end_stop_0 : %d\n\n"),mag.insert_0);
+			mag.end_stop_0=0;
 		}
 
 		if (mag.insert_1) {
-			puts_P(PSTR("insert_1\n\n"));
-			mag.insert_1--;
+			printf_P(PSTR("insert_1 : %d\n\n"),mag.insert_1);
+			mag.insert_1=0;
 		}
 
 		if (mag.insert_0) {
-			puts_P(PSTR("\ninsert_0\n"));
-			mag.insert_0--;
+			printf_P(PSTR("\ninsert_0 : %d\n"),mag.insert_0);
+			mag.insert_0=0;
 		}
 		/*
 		   if (mag.motion_1) {
